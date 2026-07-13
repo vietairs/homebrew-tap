@@ -23,7 +23,7 @@ jobs:
         run: |
           set -euo pipefail
           LATEST=$(gh api repos/vietairs/hvn-cli/releases/latest --jq .tag_name)   # e.g. v1.0.0
-          CURRENT=$(grep -oE 'refs/tags/v[0-9.]+' Formula/hvn.rb | grep -oE 'v[0-9.]+')
+          CURRENT=$(sed -n 's|.*refs/tags/\(v[0-9][0-9.]*[0-9]\)\.tar\.gz.*|\1|p' Formula/hvn.rb)
           echo "latest=$LATEST current=$CURRENT"
           if [ "$LATEST" = "$CURRENT" ]; then
             echo "Formula already up to date."
