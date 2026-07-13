@@ -7,5 +7,5 @@ brew tap vietairs/tap
 brew install hvn-agentkit   # hak (Hvn-AgentKit) installer CLI
 ```
 
-Note: `hvn` installs skills/agents/hooks content from a private repo — your own
+Note: `hak` installs skills/agents/hooks content from a private repo — your own
 `gh`/git credentials need read access to `vietairs/hvn-unknowns-kit` at runtime.
