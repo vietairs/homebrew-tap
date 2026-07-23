@@ -1,8 +1,8 @@
 class HvnAgentkit < Formula
   desc "hak (Hvn-AgentKit) — installer CLI for hvn-agentkit across coding CLIs"
   homepage "https://github.com/vietairs/hvn-cli"
-  url "https://github.com/vietairs/hvn-cli/archive/refs/tags/v1.10.1.tar.gz"
-  sha256 "350e5e34998d0c3aaf353fbddc92c482492e933cd2290aafb41232a0b53e5cb8"
+  url "https://github.com/vietairs/hvn-cli-dist/releases/download/v1.10.1/hak-v1.10.1-dist.tar.gz"
+  sha256 "223aeb5d5879e05c96f793bbf283d95046a22ad83ecb12c3d11581e2b3f16152"
   depends_on "node"
 
   def install
@@ -21,7 +21,7 @@ class HvnAgentkit < Formula
     %w[hvn-agentkit hak].each do |cmd|
       (bin/cmd).write <<~SH
         #!/bin/bash
-        exec node "#{libexec}/cli/hvn.mjs" "$@"
+        exec node "#{libexec}/cli/hvn.cjs" "$@"
       SH
     end
   end
