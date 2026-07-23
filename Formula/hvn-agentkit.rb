@@ -8,15 +8,9 @@ class HvnAgentkit < Formula
   def install
     libexec.install Dir["*"]
 
-    # Pre-build the dashboard UI at install time. `hak dashboard` builds on first
-    # run when missing, but the Homebrew Cellar is read-only after install, so we
-    # install its (isolated) deps and build the Vite bundle here instead — the
-    # runtime build-on-install check then finds them present and no-ops.
-    if (libexec/"cli/dashboard").directory?
-      system "npm", "--prefix", libexec/"cli/dashboard", "install"
-      system "npm", "--prefix", libexec/"cli/dashboard/ui", "install"
-      system "npm", "--prefix", libexec/"cli/dashboard/ui", "run", "build"
-    end
+    # cli/hvn.cjs is an esbuild bundle that already includes the dashboard
+    # server (express) deps; cli/dashboard/ui/dist ships pre-built static
+    # assets. No npm install/build needed at install time.
 
     %w[hvn-agentkit hak].each do |cmd|
       (bin/cmd).write <<~SH
