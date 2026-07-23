@@ -1,27 +1,21 @@
 class HvnAgentkit < Formula
   desc "hak (Hvn-AgentKit) — installer CLI for hvn-agentkit across coding CLIs"
   homepage "https://github.com/vietairs/hvn-cli"
-  url "https://github.com/vietairs/hvn-cli/archive/refs/tags/v1.10.1.tar.gz"
-  sha256 "350e5e34998d0c3aaf353fbddc92c482492e933cd2290aafb41232a0b53e5cb8"
+  url "https://github.com/vietairs/hvn-cli-dist/releases/download/v1.10.1/hak-v1.10.1-dist.tar.gz"
+  sha256 "223aeb5d5879e05c96f793bbf283d95046a22ad83ecb12c3d11581e2b3f16152"
   depends_on "node"
 
+  # The release artifact is a prebuilt, bundled+minified binary — no source,
+  # no npm install/build needed at install time (unlike the old source
+  # tarball). vietairs/hvn-cli's source repo is private; vietairs/hvn-cli-dist
+  # ships only compiled output.
   def install
     libexec.install Dir["*"]
-
-    # Pre-build the dashboard UI at install time. `hak dashboard` builds on first
-    # run when missing, but the Homebrew Cellar is read-only after install, so we
-    # install its (isolated) deps and build the Vite bundle here instead — the
-    # runtime build-on-install check then finds them present and no-ops.
-    if (libexec/"cli/dashboard").directory?
-      system "npm", "--prefix", libexec/"cli/dashboard", "install"
-      system "npm", "--prefix", libexec/"cli/dashboard/ui", "install"
-      system "npm", "--prefix", libexec/"cli/dashboard/ui", "run", "build"
-    end
 
     %w[hvn-agentkit hak].each do |cmd|
       (bin/cmd).write <<~SH
         #!/bin/bash
-        exec node "#{libexec}/cli/hvn.mjs" "$@"
+        exec node "#{libexec}/cli/hvn.cjs" "$@"
       SH
     end
   end
