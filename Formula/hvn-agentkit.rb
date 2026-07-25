@@ -1,8 +1,8 @@
 class HvnAgentkit < Formula
   desc "hak (Hvn-AgentKit) — installer CLI for hvn-agentkit across coding CLIs"
   homepage "https://github.com/vietairs/hvn-cli"
-  url "https://github.com/vietairs/hvn-cli-dist/releases/download/v1.11.0/hak-v1.11.0-dist.tar.gz"
-  sha256 "d70dd638f922df513bf74a12464081f8bcde5206bb662d0618fa53af2d1901a0"
+  url "https://github.com/vietairs/hvn-cli-dist/releases/download/v1.12.0/hak-v1.12.0-dist.tar.gz"
+  sha256 "9a569459dc4f5bf0b2f75dc9c3d86a506c5b999b13b43ba772b9979af815ea13"
   depends_on "node"
 
   def install
