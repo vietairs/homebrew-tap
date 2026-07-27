@@ -1,6 +1,14 @@
-# Keeps Formula/hvn-agentkit.rb in sync with the latest vietairs/hvn-cli release.
-# Self-contained: runs in this repo with the default GITHUB_TOKEN (no PAT),
-# polling on a schedule instead of a cross-repo release trigger.
+# Keeps Formula/hvn-agentkit.rb in sync with the latest published hak dist artifact.
+# Self-contained: runs in this repo with the default GITHUB_TOKEN (no PAT), polling on a
+# schedule instead of a cross-repo release trigger.
+#
+# The formula installs the PREBUILT artifact from the public vietairs/hvn-cli-dist repo, not a
+# source tarball from vietairs/hvn-cli. This workflow used to query the latter; once that repo
+# went private the default GITHUB_TOKEN started 404ing on it and every run failed. Its sed
+# patterns also still targeted the old `archive/refs/tags/<tag>.tar.gz` source-tarball URL, which
+# the formula stopped using when the dist pipeline landed — so even with the 404 fixed it would
+# have rewritten the sha256 while leaving the url untouched, committing a formula that could
+# never install. Keep this pointed at the PUBLIC dist repo.
 name: bump-hvn-formula
 
 on:
@@ -17,24 +25,59 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Bump formula if a newer hvn-cli release exists
+      - name: Bump formula if a newer hak dist release exists
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FORMULA: Formula/hvn-agentkit.rb
+          DIST_REPO: vietairs/hvn-cli-dist
         run: |
           set -euo pipefail
-          LATEST=$(gh api repos/vietairs/hvn-cli/releases/latest --jq .tag_name)   # e.g. v1.0.0
-          CURRENT=$(sed -n 's|.*refs/tags/\(v[0-9][0-9.]*[0-9]\)\.tar\.gz.*|\1|p' Formula/hvn-agentkit.rb)
-          echo "latest=$LATEST current=$CURRENT"
+
+          RELEASE=$(gh api "repos/${DIST_REPO}/releases/latest")
+          LATEST=$(jq -r '.tag_name' <<<"$RELEASE")
+
+          # Take the asset's own download URL rather than rebuilding it from a naming convention
+          # this repo does not own — a rename over there should not silently produce a 404 URL here.
+          URL=$(jq -r '[.assets[] | select(.name | endswith("-dist.tar.gz"))][0].browser_download_url // empty' <<<"$RELEASE")
+          if [ -z "$URL" ]; then
+            echo "::error::${DIST_REPO} ${LATEST} has no *-dist.tar.gz asset; assets: $(jq -r '[.assets[].name] | join(", ")' <<<"$RELEASE")"
+            exit 1
+          fi
+
+          CURRENT=$(sed -n -E 's|.*/releases/download/(v[0-9]+\.[0-9]+\.[0-9]+)/.*|\1|p' "$FORMULA")
+          if [ -z "$CURRENT" ]; then
+            echo "::error::could not read the current version from ${FORMULA} — its url line shape changed, so this workflow cannot tell what is installed"
+            exit 1
+          fi
+
+          echo "latest=${LATEST} current=${CURRENT}"
           if [ "$LATEST" = "$CURRENT" ]; then
             echo "Formula already up to date."
             exit 0
           fi
-          URL="https://github.com/vietairs/hvn-cli/archive/refs/tags/${LATEST}.tar.gz"
-          SHA=$(curl -sL "$URL" | shasum -a 256 | cut -d' ' -f1)
-          sed -i -E "s|refs/tags/v[0-9.]+\.tar\.gz|refs/tags/${LATEST}.tar.gz|" Formula/hvn-agentkit.rb
-          sed -i -E "s|sha256 \"[a-f0-9]{64}\"|sha256 \"${SHA}\"|" Formula/hvn-agentkit.rb
+
+          # --fail is load-bearing: without it a 404 response body hashes into a perfectly
+          # plausible sha256 that gets committed, yielding a formula that can never install.
+          curl -sSL --fail -o dist.tar.gz "$URL"
+          SHA=$(sha256sum dist.tar.gz | cut -d' ' -f1)
+          rm -f dist.tar.gz
+
+          sed -i -E "s|^( *url )\".*\"|\1\"${URL}\"|" "$FORMULA"
+          sed -i -E "s|^( *sha256 )\"[a-f0-9]{64}\"|\1\"${SHA}\"|" "$FORMULA"
+
+          # A version difference that produces no diff means the patterns above have gone stale
+          # against the formula — fail instead of reporting a silent success forever.
+          if git diff --quiet -- "$FORMULA"; then
+            echo "::error::${LATEST} differs from ${CURRENT} but ${FORMULA} did not change — the url/sha256 sed patterns no longer match it"
+            exit 1
+          fi
+
+          # Prove the rewrite landed both halves before committing.
+          grep -q "releases/download/${LATEST}/" "$FORMULA"
+          grep -q "sha256 \"${SHA}\"" "$FORMULA"
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Formula/hvn-agentkit.rb
+          git add "$FORMULA"
           git commit -m "feat: bump hvn-agentkit to ${LATEST}"
           git push
