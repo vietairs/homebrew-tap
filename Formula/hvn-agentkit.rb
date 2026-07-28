@@ -1,8 +1,8 @@
 class HvnAgentkit < Formula
   desc "hak (Hvn-AgentKit) — installer CLI for hvn-agentkit across coding CLIs"
   homepage "https://github.com/vietairs/hvn-cli"
-  url "https://github.com/vietairs/hvn-cli-dist/releases/download/v2.0.0/hak-v2.0.0-dist.tar.gz"
-  sha256 "b5e6dde6ea1017bf6db247300e9e8b4c76ec0d1f4dad733edaaf167183147d59"
+  url "https://github.com/vietairs/hvn-cli-dist/releases/download/v2.1.0/hak-v2.1.0-dist.tar.gz"
+  sha256 "a4e4ec009cfed4e89de969a427d95a464a55f964346653050cc51022c5b21f44"
   # hak 2.0.0 raised its engine floor to Node >= 22. Homebrew's `node` formula is well past that,
   # so the bare dependency still resolves — but a user on an older pinned node will now fail at
   # runtime rather than install time.
