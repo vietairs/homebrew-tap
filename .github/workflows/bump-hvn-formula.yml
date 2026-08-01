@@ -44,6 +44,18 @@ jobs:
             exit 1
           fi
 
+          # The bottle is not optional: without one Homebrew treats this formula as a build from
+          # source and fatally rejects any Xcode older than "<macos>.0" on a prerelease macOS,
+          # even though nothing here is compiled. Refuse to bump to a release that lacks it —
+          # bumping url/sha256 alone would leave the bottle block pointing at the PREVIOUS
+          # release, so Homebrew would request a bottle filename that does not exist there and
+          # fail the install outright. Better to stay on a working older version and alert.
+          BOTTLE_URL=$(jq -r '[.assets[] | select(.name | endswith(".bottle.tar.gz"))][0].browser_download_url // empty' <<<"$RELEASE")
+          if [ -z "$BOTTLE_URL" ]; then
+            echo "::error::${DIST_REPO} ${LATEST} has no *.bottle.tar.gz asset — run 'npm run build:bottle' in hvn-cli and upload it before this can bump; assets: $(jq -r '[.assets[].name] | join(", ")' <<<"$RELEASE")"
+            exit 1
+          fi
+
           CURRENT=$(sed -n -E 's|.*/releases/download/(v[0-9]+\.[0-9]+\.[0-9]+)/.*|\1|p' "$FORMULA")
           if [ -z "$CURRENT" ]; then
             echo "::error::could not read the current version from ${FORMULA} — its url line shape changed, so this workflow cannot tell what is installed"
@@ -62,8 +74,20 @@ jobs:
           SHA=$(sha256sum dist.tar.gz | cut -d' ' -f1)
           rm -f dist.tar.gz
 
+          curl -sSL --fail -o bottle.tar.gz "$BOTTLE_URL"
+          BOTTLE_SHA=$(sha256sum bottle.tar.gz | cut -d' ' -f1)
+          rm -f bottle.tar.gz
+
+          # root_url is the release directory; Homebrew appends the filename it derives from the
+          # formula's own name/version, so this must track the release tag on every bump.
+          BOTTLE_ROOT_URL="${BOTTLE_URL%/*}"
+
+          # The source sha256 sits on a bare `sha256 "..."` line; the bottle's carries a
+          # `cellar:`/`all:` prefix, so these two patterns cannot collide.
           sed -i -E "s|^( *url )\".*\"|\1\"${URL}\"|" "$FORMULA"
           sed -i -E "s|^( *sha256 )\"[a-f0-9]{64}\"|\1\"${SHA}\"|" "$FORMULA"
+          sed -i -E "s|^( *root_url )\".*\"|\1\"${BOTTLE_ROOT_URL}\"|" "$FORMULA"
+          sed -i -E "s|^( *sha256 cellar: [^,]+, all: )\"[a-f0-9]{64}\"|\1\"${BOTTLE_SHA}\"|" "$FORMULA"
 
           # A version difference that produces no diff means the patterns above have gone stale
           # against the formula — fail instead of reporting a silent success forever.
@@ -72,9 +96,13 @@ jobs:
             exit 1
           fi
 
-          # Prove the rewrite landed both halves before committing.
+          # Prove the rewrite landed every half before committing. The bottle's root_url is
+          # checked separately from the url line: both must point at the NEW tag, or Homebrew
+          # pours a bottle from one release against a formula describing another.
           grep -q "releases/download/${LATEST}/" "$FORMULA"
           grep -q "sha256 \"${SHA}\"" "$FORMULA"
+          grep -q "root_url \"${BOTTLE_ROOT_URL}\"" "$FORMULA"
+          grep -q "all: \"${BOTTLE_SHA}\"" "$FORMULA"
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
