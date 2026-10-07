@@ -1,8 +1,8 @@
 class HvnAgentkit < Formula
   desc "hak (Hvn-AgentKit) — installer CLI for hvn-agentkit across coding CLIs"
   homepage "https://github.com/vietairs/hvn-cli"
-  url "https://github.com/vietairs/hvn-cli-dist/releases/download/v2.28.0/hak-v2.28.0-dist.tar.gz"
-  sha256 "6fa6d9b767d8f50efe0a24c19fe5de9253f60aea52ede20b6b464205ccbf8e4d"
+  url "https://github.com/vietairs/hvn-cli-dist/releases/download/v2.28.1/hak-v2.28.1-dist.tar.gz"
+  sha256 "b3ce7d5600d35bb381624633f429a3d688b812f2b5c03c4a03849bb954e50dea"
 
   # The install step only copies prebuilt files and writes two shell shims — nothing is
   # compiled. Without a bottle, Homebrew still treats installation as a build from source
@@ -12,8 +12,8 @@ class HvnAgentkit < Formula
   # The bottle is platform-independent: `:any` because the shims embed a Cellar path that
   # Homebrew rewrites from its @@HOMEBREW_CELLAR@@ placeholder at pour time.
   bottle do
-    root_url "https://github.com/vietairs/hvn-cli-dist/releases/download/v2.28.0"
-    sha256 cellar: :any, all: "c64df92dd8d413e9aa94ef94a316ffe185a2b7a40656509ebb2dbe347f4888f8"
+    root_url "https://github.com/vietairs/hvn-cli-dist/releases/download/v2.28.1"
+    sha256 cellar: :any, all: "3a2442998745f35a3e4700259c8c1dd913329b3eac1dfd1c9c4d05c2b4cce54c"
   end
 
   # hak 2.0.0 raised its engine floor to Node >= 22. Homebrew's `node` formula is well past that,
